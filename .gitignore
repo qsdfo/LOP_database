@@ -1,0 +1,7 @@
+LOP_database/utils/Needleman/
+!LOP_database/utils/Needleman/needleman_chord.c
+
+*.pyc
+.DS_Store
+*.so
+*.mid
