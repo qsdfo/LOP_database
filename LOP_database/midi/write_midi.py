@@ -5,8 +5,6 @@ from LOP_database.utils.program_change_mapping import program_change_mapping
 from LOP_database.utils.map_instrument import map_instrument
 
 from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
-from acidano.visualization.numpy_array.dumped_numpy_to_csv import dump_to_csv
-from acidano.visualization.numpy_array.write_numpy_array_html import write_numpy_array_html
 
 
 def write_midi(pr, quantization, write_path, tempo=80):
@@ -53,9 +51,9 @@ def write_midi(pr, quantization, write_path, tempo=80):
             program = program_change_mapping[instrument_name]
         except:
             # Defaul is piano
-            print instrument_name + " not in the program_change mapping"
-            print "Default value is 1 (piano)"
-            print "Check acidano/data_processing/utils/program_change_mapping.py"
+            # print instrument_name + " not in the program_change mapping"
+            # print "Default value is 1 (piano)"
+            # print "Check acidano/data_processing/utils/program_change_mapping.py"
             program = 1
         track.append(mido.Message('program_change', program=program))
 
@@ -82,58 +80,3 @@ def write_midi(pr, quantization, write_path, tempo=80):
                 notes_on_list.append(pitch)
     mid.save(write_path)
     return
-
-
-if __name__ == '__main__':
-    # from LOP_database.midi.read_midi import Read_midi
-    # song_path = "/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/Orchestration_checked/bouliane/0/Beethoven_Symph3_ii(1-8,105-115)_ORCH+REDUC+piano_orch.mid"
-    # csv_path = "/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/Orchestration_checked/bouliane/0/Beethoven_Symph3_ii(1-8,105-115)_ORCH+REDUC+piano_orch.csv"
-    # quantization = 60
-    # reader = Read_midi(song_path, quantization)
-    # pr = reader.read_file()
-    # pr_map = map_instrument(pr, csv_path)
-    #
-    # pr_flat = sum_along_instru_dim(pr_map)
-    # temp_csv = 'temp.csv'
-    # np.savetxt(temp_csv, pr_flat, delimiter=',')
-    # dump_to_csv(temp_csv, temp_csv)
-    # write_numpy_array_html('pr.html', 'temp')
-    #
-    # write_midi(pr_map, quantization,"test.mid", tempo=30)
-
-    # Writing a midi sweep with a crescendo
-    # base_mat = np.zeros((16000,128))
-    # base_mat_bass = np.zeros((16000,128))
-    # i = 0
-    # while(i<16000):
-    #     base_mat[i:i+4,60] = 30
-    #     base_mat[i+4:i+8,62] = 60
-    #     base_mat[i+8:i+12,64] = 90
-    #     base_mat[i+12:i+16,65] = 120
-    #
-    #     base_mat_bass[i:i+4,36] = 30
-    #     base_mat_bass[i+4:i+8,38] = 60
-    #     base_mat_bass[i+8:i+12,40] = 90
-    #     base_mat_bass[i+12:i+16,41] = 120
-    #
-    #     i = i + 16
-    #
-    # pr_piano = {'piano': base_mat}
-    # pr_orch = {'violin': base_mat, 'trombone': base_mat_bass}
-    # write_midi(pr_piano, quantization=4, write_path="DEBUG/piano.mid", tempo=80)
-    # write_midi(pr_orch, quantization=4, write_path="DEBUG/orch.mid", tempo=80)
-
-    # Writing a midi sweep with a crescendo
-    base_mat = np.zeros((16000,128))
-    base_mat_bass = np.zeros((16000,128))
-    i = 0
-    while(i<16000):
-        base_mat[i:i+4,60] = 30
-        base_mat[i+8:i+12,64] = 90
-        i = i + 16
-    base_mat_bass[:-5,36] = 120
-
-    pr_piano = {'piano': base_mat}
-    pr_orch = {'violin': base_mat, 'trombone': base_mat_bass}
-    write_midi(pr_piano, quantization=4, write_path="DEBUG/piano.mid", tempo=80)
-    write_midi(pr_orch, quantization=4, write_path="DEBUG/orch.mid", tempo=80)

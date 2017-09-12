@@ -2,11 +2,14 @@
 
 ## Installation
 
-### Pre-requisite
-You need to install :
-- Numpy, the basic package for scientific computing with Python (http://www.numpy.org/)
-- Mido, a python library for Midi files processing (https://mido.readthedocs.io/en/latest/)
-- GCC
+### Dependencies
+You need to install the following python packages (using pip for instance)
+    
+    pip install mido unidecode numpy fastdtw scipy
+
+unidecodecsv (python setup.py)
+
+GCC
 
 ### Automatic alignement function
 The automatic alignement function is coded in C and need to be compiled using the following commands :

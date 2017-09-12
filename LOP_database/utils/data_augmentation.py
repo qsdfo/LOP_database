@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 import numpy as np
-import acidano.data_processing.utils.pianoroll_processing as pianoroll_processing
+import LOP_database.utils.pianoroll_processing as pianoroll_processing
 
 
 # Data augmentation
