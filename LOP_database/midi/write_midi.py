@@ -37,9 +37,6 @@ def write_midi(pr, quantization, write_path, tempo=80):
 
     # Each instrument is a track
     for instrument_name, matrix in pr.iteritems():
-        # A bit shity : if the pr is a binary pr, multiply by 127
-        if np.max(matrix) == 1:
-            matrix = matrix * 127
         # Add a new track with the instrument name to the midi file
         track = mid.add_track(instrument_name)
         # transform the matrix in a list of (pitch, velocity, time)
