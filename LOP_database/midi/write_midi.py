@@ -7,7 +7,7 @@ from LOP_database.utils.map_instrument import map_instrument
 from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
 
 
-def write_midi(pr, quantization, write_path, tempo=80):
+def write_midi(pr, ticks_per_beat, write_path, tempo=80):
     def pr_to_list(pr):
         # List event = (pitch, velocity, time)
         T, N = pr.shape
@@ -32,8 +32,7 @@ def write_midi(pr, quantization, write_path, tempo=80):
     microseconds_per_beat = mido.bpm2tempo(tempo)
     # Write a pianoroll in a midi file
     mid = MidiFile()
-    # ticks_per_beat can be the quantization, this simplify the writing process
-    mid.ticks_per_beat = quantization
+    mid.ticks_per_beat = ticks_per_beat
 
     # Each instrument is a track
     for instrument_name, matrix in pr.iteritems():

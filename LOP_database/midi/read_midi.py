@@ -7,7 +7,7 @@ from write_midi import write_midi
 from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
 from LOP_database.utils.pianoroll_processing import get_pianoroll_time
 
-from LOP_database.utils.event_level import get_event_ind_dict
+from LOP_database.utils.event_level import get_event_ind_dict, from_event_to_frame
 from LOP_database.utils.time_warping import warp_pr_aux
 
 import numpy as np
@@ -187,97 +187,141 @@ class Read_midi(object):
 
 
 if __name__ == '__main__':
-    from acidano.visualization.numpy_array.visualize_numpy import visualize_dict, visualize_mat
-    # orch_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_30_06_17/liszt_classical_archives/0/symphony_1_1_orch.mid'
-    # piano_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_30_06_17/liszt_classical_archives/0/bl11_solo.mid'
-    orch_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_30_06_17/bouliane/3/Moussorgsky_TableauxProm(24 mes)_ORCH+REDUC+piano_orch.mid'
-    piano_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_30_06_17/bouliane/3/Moussorgsky_TableauxProm(24 mes)_ORCH+REDUC+piano_solo.mid'
-    quantization = 4
-    start_ind = 0
-    end_ind = 88
-    
-    orchfile = Read_midi(orch_path, quantization)
-    pr_orch = orchfile.read_file()
+    from LOP_database.visualization.numpy_array.visualize_numpy import visualize_dict, visualize_mat
+    from LOP.Database.build_data_aux import process_folder
 
-    ########################################################
-    # orch = sum_along_instru_dim(pr)[start_ind:end_ind] 
+    folder_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18'
+    quantization = 100
+    temporal_granularity = 'event_level'
+
+    ##### Import 
+    import cPickle as pkl
+    metadata = pkl.load(open("/Users/leo/Recherche/GitHub_Aciditeam/lop/Data/Data_DEBUG__event_level100__0/metadata.pkl", 'rb'))
+    instru_mapping = metadata["instru_mapping"]
+    N_orch = metadata["N_orchestra"]
+    N_piano = metadata["N_piano"]
+    
+    pr_piano, event_piano, _, _, pr_orch, event_orch, instru_orch, _, duration = process_folder(folder_path, quantization, temporal_granularity, gapopen=5, gapextend=2)
+
+    # Cut in pieces
+    def plot_pieces(pr, num_steps, name):
+        duration = pr.shape[0]
+        step = duration / num_steps
+        parts = [pr[e*step:(e+1)*step] for e in range(num_steps)]
+        for i, part in enumerate(parts):
+            visualize_mat(part, 'DEBUG', name + str(i), time_indices=None)
+
+    #############
+    
+    new_orch = np.zeros((duration, N_orch))
+    new_piano = np.zeros((duration, N_piano))
+
+    from LOP.Database.build_data import cast_pr
+    cast_pr(pr_orch, instru_orch, pr_piano, 0,
+        duration, instru_mapping, new_orch, new_piano, None)
+
+    plot_np = np.concatenate([new_piano, np.zeros((duration, 20)), new_orch], axis=1)
+
+    # Plot of training matrices
+    plot_pieces(plot_np, 10, "orch_timewarped")
+
+    # Midi their reconstructions
+    from LOP_database.utils.reconstruct_pr import instrument_reconstruction
+    new_orch_rec = instrument_reconstruction(new_orch, instru_mapping)
+    write_midi(new_orch_rec, 1, "DEBUG/orch_reconstructed_notime_aligned.mid", tempo=200)
+
+    A = from_event_to_frame(new_orch, event_piano)
+    plot_pieces(A[24997:24997+5000], 10, "orch_reconstructed")
+    B = A
+    orchestra_reconstructed = instrument_reconstruction(B, instru_mapping)
+    write_midi(orchestra_reconstructed, quantization, "DEBUG/orch_reconstructed.mid", tempo=80)
+
+    # orch_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18/symphony_7_4_orch.mid'
+    # piano_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18/_beet7_4_solo.mid'
+    # quantization = 100
+    # # start_ind = 0
+    # # end_ind = 88
+    
+    # pr_orch = Read_midi(orch_path, quantization).read_file()
+
+    # ########################################################
+    # # orch = sum_along_instru_dim(pr)[start_ind:end_ind] 
+    # # orch[np.nonzero(orch)] = 1
+    # # orch[0, 30] = 1
+    # # orch[0, 92] = 1
+    # #######################################################
+
+    # #######################################################
+    # pr_piano = Read_midi(piano_path, quantization).read_file()
+    # #######################################################
+
+    # #######################################################
+    # # Event level representation
+    # event_piano = get_event_ind_dict(pr_piano)
+    # event_orch = get_event_ind_dict(pr_orch)
+    # pr_piano = warp_pr_aux(pr_piano, event_piano)
+    # pr_orch = warp_pr_aux(pr_orch, event_orch)
+    # ########################################################
+
+    # def align_tracks(pr0, pr1, unit_type, gapopen, gapextend):
+    #     # Get trace from needleman_wunsch algorithm
+
+    #     # First extract binary representation, whatever unit_type is
+    #     pr0_binary = Unit_type.from_type_to_binary(pr0, unit_type)
+    #     pr1_binary = Unit_type.from_type_to_binary(pr1, unit_type)  
+    #     pr0_trace = sum_along_instru_dim(pr0_binary)
+    #     pr1_trace = sum_along_instru_dim(pr1_binary)
+
+    #     # Traces are computed from binaries matrices
+    #     # Traces are binary lists, 0 meaning a gap is inserted
+    #     trace_0, trace_1, this_sum_score, this_nbId, this_nbDiffs = needleman_chord_wrapper(pr0_trace, pr1_trace, gapopen, gapextend)
+
+    #     ####################################
+    #     # Wrap dictionnaries according to the traces
+    #     assert(len(trace_0) == len(trace_1)), "size mismatch"
+    #     pr0_warp = warp_dictionnary_trace(pr0, trace_0)
+    #     pr1_warp = warp_dictionnary_trace(pr1, trace_1)
+
+    #     ####################################
+    #     # Trace product
+    #     trace_prod = [e1 * e2 for (e1, e2) in zip(trace_0, trace_1)]
+    #     duration = sum(trace_prod)
+    #     if duration == 0:
+    #         return [None]*6
+    #     # Remove gaps
+    #     pr0_aligned = remove_zero_in_trace(pr0_warp, trace_prod)
+    #     pr1_aligned = remove_zero_in_trace(pr1_warp, trace_prod)
+
+    #     return pr0_aligned, trace_0, pr1_aligned, trace_1, trace_prod, duration
+
+    # pr_piano, trace_0, pr_orch, trace_1, trace_prod, duration = align_tracks(pr_piano, pr_orch, 'binary', 3, 2)
+
+    # ########################################################
+    # horn = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Horn 1', u'Horn 3']})
+    # tuba = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Tuba 1']})
+    # trumpet = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Trumpet 2', u'Trumpet 1']})
+    # trombone = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Trombone Bass', u'Trombone 1']})
+    # orch = np.concatenate([horn, tuba, trumpet, trombone], axis=1)
+    # ########################################################
+
+    # piano = sum_along_instru_dim(pr_piano)[start_ind:end_ind]
+    # piano[np.nonzero(piano)] = 1
+    # # piano[0, 30] = 1
+    # # piano[0, 92] = 1
+
     # orch[np.nonzero(orch)] = 1
-    # orch[0, 30] = 1
-    # orch[0, 92] = 1
-    #######################################################
+    # piano[np.nonzero(piano)] = 1
 
-    #######################################################
-    pianofile = Read_midi(piano_path, quantization)
-    pr_piano = pianofile.read_file()
-    #######################################################
-
-    #######################################################
-    # Event level representation
-    event_piano = get_event_ind_dict(pr_piano)
-    event_orch = get_event_ind_dict(pr_orch)
-    pr_piano = warp_pr_aux(pr_piano, event_piano)
-    pr_orch = warp_pr_aux(pr_orch, event_orch)
-    ########################################################
-
-    def align_tracks(pr0, pr1, unit_type, gapopen, gapextend):
-        # Get trace from needleman_wunsch algorithm
-
-        # First extract binary representation, whatever unit_type is
-        pr0_binary = Unit_type.from_type_to_binary(pr0, unit_type)
-        pr1_binary = Unit_type.from_type_to_binary(pr1, unit_type)  
-        pr0_trace = sum_along_instru_dim(pr0_binary)
-        pr1_trace = sum_along_instru_dim(pr1_binary)
-
-        # Traces are computed from binaries matrices
-        # Traces are binary lists, 0 meaning a gap is inserted
-        trace_0, trace_1, this_sum_score, this_nbId, this_nbDiffs = needleman_chord_wrapper(pr0_trace, pr1_trace, gapopen, gapextend)
-
-        ####################################
-        # Wrap dictionnaries according to the traces
-        assert(len(trace_0) == len(trace_1)), "size mismatch"
-        pr0_warp = warp_dictionnary_trace(pr0, trace_0)
-        pr1_warp = warp_dictionnary_trace(pr1, trace_1)
-
-        ####################################
-        # Trace product
-        trace_prod = [e1 * e2 for (e1, e2) in zip(trace_0, trace_1)]
-        duration = sum(trace_prod)
-        if duration == 0:
-            return [None]*6
-        # Remove gaps
-        pr0_aligned = remove_zero_in_trace(pr0_warp, trace_prod)
-        pr1_aligned = remove_zero_in_trace(pr1_warp, trace_prod)
-
-        return pr0_aligned, trace_0, pr1_aligned, trace_1, trace_prod, duration
-
-    pr_piano, trace_0, pr_orch, trace_1, trace_prod, duration = align_tracks(pr_piano, pr_orch, 'binary', 3, 2)
-
-    ########################################################
-    horn = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Horn 1', u'Horn 3']})
-    tuba = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Tuba 1']})
-    trumpet = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Trumpet 2', u'Trumpet 1']})
-    trombone = sum_along_instru_dim({k: pr_orch[k][start_ind:end_ind] for k in [u'Trombone Bass', u'Trombone 1']})
-    orch = np.concatenate([horn, tuba, trumpet, trombone], axis=1)
-    ########################################################
-
-    piano = sum_along_instru_dim(pr_piano)[start_ind:end_ind]
-    piano[np.nonzero(piano)] = 1
-    # piano[0, 30] = 1
-    # piano[0, 92] = 1
-
-    orch[np.nonzero(orch)] = 1
-    piano[np.nonzero(piano)] = 1
-
-    visualize_mat(orch, 'DEBUG', 'orch', time_indices=None)
-    visualize_mat(piano, 'DEBUG', 'piano', time_indices=None)
+    # visualize_mat(orch, 'DEBUG', 'orch', time_indices=None)
+    # visualize_mat(piano, 'DEBUG', 'piano', time_indices=None)
     
-    # call(["open", "DEBUG/numpy_vis.html"])
+    # # call(["open", "DEBUG/numpy_vis.html"])
 
-    # pr_clip = clip_pr(pr)
-    # pr_warped = linear_warp_pr(pr_clip, int(midifile.T_pr * 0.6))
+    # # pr_clip = clip_pr(pr)
+    # # pr_warped = linear_warp_pr(pr_clip, int(midifile.T_pr * 0.6))
 
-    # write_midi(pr_warped, midifile.quantization, 'DEBUG/out.mid')
-    # write_midi(midifile.pianoroll, midifile.quantization, 'DEBUG/out2.mid')
-    # for name_instru in midifile.pianoroll.keys():
-    #     np.savetxt('DEBUG/' + name_instru + '.csv', midifile.pianoroll[name_instru], delimiter=',')
-    #     dump_to_csv('DEBUG/' + name_instru + '.csv', 'DEBUG/' + name_instru + '.csv')
+    # # write_midi(pr_warped, midifile.quantization, 'DEBUG/out.mid')
+    # # write_midi(midifile.pianoroll, midifile.quantization, 'DEBUG/out2.mid')
+    # # for name_instru in midifile.pianoroll.keys():
+    # #     np.savetxt('DEBUG/' + name_instru + '.csv', midifile.pianoroll[name_instru], delimiter=',')
+    # #     dump_to_csv('DEBUG/' + name_instru + '.csv', 'DEBUG/' + name_instru + '.csv')

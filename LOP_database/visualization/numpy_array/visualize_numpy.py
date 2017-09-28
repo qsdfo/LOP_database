@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from acidano.data_processing.utils.pianoroll_processing import sum_along_instru_dim
-from acidano.visualization.numpy_array.write_numpy_array_html import write_numpy_array_html
-from acidano.visualization.numpy_array.dumped_numpy_to_csv import dump_to_csv
+from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
+from LOP_database.visualization.numpy_array.write_numpy_array_html import write_numpy_array_html
+from LOP_database.visualization.numpy_array.dumped_numpy_to_csv import dump_to_csv
 
 
 def visualize_dict(pr, path, file_name_no_extension, time_indices=None):
