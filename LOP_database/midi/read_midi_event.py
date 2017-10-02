@@ -5,9 +5,10 @@
 
 from mido import MidiFile
 from unidecode import unidecode
+import math
 
 
-def read_midi_event(file):
+def read_midi_event(file, time_granularity=4):
     # events is a numpy array of dimension number_events * pitch containing the intensity of each pitch
     # times are the real time when the events occur
 
@@ -15,6 +16,8 @@ def read_midi_event(file):
     mid = MidiFile(file)
     # Tick per beat
     ticks_per_beat = mid.ticks_per_beat
+    # Time quantization
+    quantization_factor = int(ticks_per_beat / time_granularity)
     
     # Pitch dimension
     N_pr = 128
@@ -28,14 +31,20 @@ def read_midi_event(file):
         # Two successive events ??
         time_counter = 0
         notes_on = {}
+        event_list_track = []
         track_name = unidecode(track.name).decode('utf8')
         if track_name == u'':
             track_name = 'unnamed' + str(counter_unnamed_track)
             counter_unnamed_track += 1
         for message in track:
-            # Time. Must be incremented, whether it is a note on/off or not
-            time = float(message.time)
-            time_counter += time
+            ########################################## 
+            # Time
+            # Must be incremented, whether it is a note on/off or not
+            time_counter += float(message.time)
+            ##########################################
+            
+            ##########################################
+            # Pitch and velocity
             # Note on
             if message.type == 'note_on':
                 # Get pitch
@@ -55,11 +64,35 @@ def read_midi_event(file):
                 del notes_on[pitch]
             else:
                 continue
+            ##########################################
 
-            event_list.append((time_counter, track_name, dict(notes_on)))
+            ########################################## 
+            event_list_track.append((time_counter, track_name, dict(notes_on)))
+            ########################################## 
+
+        if len(event_list_track) == 0:
+            continue
+
+        first_event = event_list_track.pop(0)
+        event_list_track_merge = [first_event]
+        time = first_event[0]
+        for next_event in event_list_track:
+            if not(next_event[0] - time < quantization_factor):
+                event_list_track_merge.append(next_event)
+                time = next_event[0]
+
+        event_list += event_list_track
 
     # Sort by time
     event_list.sort(key=lambda tup: tup[0])
+
+    counter = 0
+    for e in event_list:
+        if e[1]=='Viole':
+            counter += 1
+            print(e)
+        if counter == 100:
+            import pdb; pdb.set_trace()
     
     return event_list, ticks_per_beat
 

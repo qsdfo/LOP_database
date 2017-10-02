@@ -69,6 +69,13 @@ def pitch_class(pr):
     pr_red_bin = (pr_red > 0).astype(int)
     return pr_red_bin
 
+def extract_pianoroll_part(pianoroll, start_time, end_time):
+    new_pr = {}
+    # Start and end time are given in discrete frames
+    for k,v in pianoroll.iteritems():
+        new_pr[k] = v[start_time:end_time]
+    return new_pr
+
 
 if __name__ == "__main__":
     from acidano.data_processing.midi.read_midi import Read_midi

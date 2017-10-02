@@ -12,8 +12,6 @@ from LOP_database.utils.time_warping import warp_pr_aux
 
 import numpy as np
 
-
-
 from LOP_database.utils.time_warping import needleman_chord_wrapper, warp_dictionnary_trace, remove_zero_in_trace
 import LOP_database.utils.unit_type as Unit_type
 
@@ -147,6 +145,20 @@ class Read_midi(object):
             time_counter = 0
             notes_on = []
             for message in track:
+
+
+                ##########################################
+                ##########################################
+                ##########################################
+                # TODO : keep track of tempo information
+                # import re
+                # if re.search("tempo", message.type):
+                #     import pdb; pdb.set_trace()
+                ##########################################
+                ##########################################
+                ##########################################
+
+
                 # print message
                 # Time. Must be incremented, whether it is a note on/off or not
                 time = float(message.time)
@@ -188,53 +200,91 @@ class Read_midi(object):
 
 if __name__ == '__main__':
     from LOP_database.visualization.numpy_array.visualize_numpy import visualize_dict, visualize_mat
-    from LOP.Database.build_data_aux import process_folder
+    from LOP.Database.Frame_level.build_data_aux import process_folder, get_instru_and_pr_from_folder_path, simplify_instrumentation
+    import LOP_database.utils.pianoroll_processing as pianoroll_processing
 
     folder_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18'
-    quantization = 100
+    quantization = 8
     temporal_granularity = 'event_level'
 
-    ##### Import 
-    import cPickle as pkl
-    metadata = pkl.load(open("/Users/leo/Recherche/GitHub_Aciditeam/lop/Data/Data_DEBUG__event_level100__0/metadata.pkl", 'rb'))
-    instru_mapping = metadata["instru_mapping"]
-    N_orch = metadata["N_orchestra"]
-    N_piano = metadata["N_piano"]
+    # PR
+    pr0, instru0, _, name0, pr_orch, instru_orch, _, name1 = get_instru_and_pr_from_folder_path(folder_path, quantization)
+    event_orch = get_event_ind_dict(pr_orch)
+    pr_orch = warp_pr_aux(pr_orch, event_orch)
+
+    pr_simplified = {}
+    for k, v in pr_orch.iteritems():
+        new_k = instru_orch[k]
+        if new_k != 'Remove':
+            if new_k in pr_simplified.keys():
+                pr_simplified[new_k] = np.maximum(pr_simplified[new_k], v)
+            else:
+                pr_simplified[new_k] = v
+
+    # # align
+    # # Align tracks
+    # from LOP_database.utils.align_pianorolls import align_pianorolls
+    # from LOP.Database.Frame_level.build_data_aux import clean_event
+    # pr0_aligned, trace_0, pr_orch_aligned, trace_1, trace_prod, duration = align_pianorolls(pr0, pr_orch, 3, 1)
+    # import pdb; pdb.set_trace()
+    # event1_aligned = clean_event(event_orch, trace_1, trace_prod)
     
-    pr_piano, event_piano, _, _, pr_orch, event_orch, instru_orch, _, duration = process_folder(folder_path, quantization, temporal_granularity, gapopen=5, gapextend=2)
+    # back to frame
+    pr_frame = {k : from_event_to_frame(v, event_orch) for k, v in pr_simplified.iteritems()}
 
-    # Cut in pieces
-    def plot_pieces(pr, num_steps, name):
-        duration = pr.shape[0]
-        step = duration / num_steps
-        parts = [pr[e*step:(e+1)*step] for e in range(num_steps)]
-        for i, part in enumerate(parts):
-            visualize_mat(part, 'DEBUG', name + str(i), time_indices=None)
+    # WRITE
+    write_midi(pr_frame, quantization, "DEBUG/orch.mid", tempo=120)
 
-    #############
+
+
+
+
+
+    # ##### Import 
+    # import cPickle as pkl
+    # metadata = pkl.load(open("/Users/leo/Recherche/GitHub_Aciditeam/lop/Data/Data_DEBUG__event_level100__0/metadata.pkl", 'rb'))
+    # instru_mapping = metadata["instru_mapping"]
+    # N_orch = metadata["N_orchestra"]
+    # N_piano = metadata["N_piano"]
     
-    new_orch = np.zeros((duration, N_orch))
-    new_piano = np.zeros((duration, N_piano))
+    # pr_piano, event_piano, _, _, pr_orch, event_orch, instru_orch, _, duration = process_folder(folder_path, quantization, temporal_granularity, gapopen=5, gapextend=2)
+    # write_midi(new_orch_rec, 1, "DEBUG/pr_orch.mid", tempo=200)
 
-    from LOP.Database.build_data import cast_pr
-    cast_pr(pr_orch, instru_orch, pr_piano, 0,
-        duration, instru_mapping, new_orch, new_piano, None)
+    # # Cut in pieces
+    # def plot_pieces(pr, num_steps, name):
+    #     duration = pr.shape[0]
+    #     step = duration / num_steps
+    #     parts = [pr[e*step:(e+1)*step] for e in range(num_steps)]
+    #     for i, part in enumerate(parts):
+    #         visualize_mat(part, 'DEBUG', name + str(i), time_indices=None)
 
-    plot_np = np.concatenate([new_piano, np.zeros((duration, 20)), new_orch], axis=1)
+    # #############
+    
+    # new_orch = np.zeros((duration, N_orch))
+    # new_piano = np.zeros((duration, N_piano))
 
-    # Plot of training matrices
-    plot_pieces(plot_np, 10, "orch_timewarped")
+    # from LOP.Database.build_data import cast_pr
+    # cast_pr(pr_orch, instru_orch, pr_piano, 0,
+    #     duration, instru_mapping, new_orch, new_piano, None)
 
-    # Midi their reconstructions
-    from LOP_database.utils.reconstruct_pr import instrument_reconstruction
-    new_orch_rec = instrument_reconstruction(new_orch, instru_mapping)
-    write_midi(new_orch_rec, 1, "DEBUG/orch_reconstructed_notime_aligned.mid", tempo=200)
+    # plot_np = np.concatenate([new_piano, np.zeros((duration, 20)), new_orch], axis=1)
 
-    A = from_event_to_frame(new_orch, event_piano)
-    plot_pieces(A[24997:24997+5000], 10, "orch_reconstructed")
-    B = A
-    orchestra_reconstructed = instrument_reconstruction(B, instru_mapping)
-    write_midi(orchestra_reconstructed, quantization, "DEBUG/orch_reconstructed.mid", tempo=80)
+    # # Plot of training matrices
+    # plot_pieces(plot_np, 10, "orch_timewarped")
+
+    # # Midi their reconstructions
+    # from LOP_database.utils.reconstruct_pr import instrument_reconstruction
+    # new_orch_rec = instrument_reconstruction(new_orch, instru_mapping)
+    # write_midi(new_orch_rec, 1, "DEBUG/orch_reconstructed_notime_aligned.mid", tempo=200)
+
+    # A = from_event_to_frame(new_orch, event_piano)
+    # plot_pieces(A[24997:24997+5000], 10, "orch_reconstructed")
+    # B = A
+    # orchestra_reconstructed = instrument_reconstruction(B, instru_mapping)
+    # write_midi(orchestra_reconstructed, quantization, "DEBUG/orch_reconstructed.mid", tempo=80)
+
+
+
 
     # orch_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18/symphony_7_4_orch.mid'
     # piano_path = '/Users/leo/Recherche/GitHub_Aciditeam/database/Orchestration/LOP_database_06_09_17/liszt_classical_archives/18/_beet7_4_solo.mid'
