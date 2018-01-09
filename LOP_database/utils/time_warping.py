@@ -3,9 +3,9 @@
 
 import math
 import numpy as np
-from pianoroll_processing import pitch_class, sum_along_instru_dim, get_pianoroll_time
-from fastdtw import fastdtw
-from scipy.spatial.distance import euclidean
+from pianoroll_processing import pitch_class, get_pianoroll_time #, sum_along_instru_dim
+#from fastdtw import fastdtw
+#from scipy.spatial.distance import euclidean
 
 import needleman_chord
 
@@ -97,23 +97,23 @@ def warp_pr_aux(pr, path):
     return pr_warp
 
 
-def dtw_pr(pr0, pr1):
-    # Flatten pr to compute the path
-    pr0_flat = sum_along_instru_dim(pr0)
-    pr1_flat = sum_along_instru_dim(pr1)
-
-    def fun_thresh(y):
-        return np.minimum(y, 1).astype(int)
-
-    distance, path = fastdtw(pr0_flat, pr1_flat, dist=lambda a, b: euclidean(fun_thresh(a), fun_thresh(b)))
-    # Get paths
-    path0 = [e[0] for e in path]
-    path1 = [e[1] for e in path]
-
-    pr0_warp = warp_pr_aux(pr0, path0)
-    pr1_warp = warp_pr_aux(pr1, path1)
-
-    return pr0_warp, pr1_warp
+#def dtw_pr(pr0, pr1):
+#    # Flatten pr to compute the path
+#    pr0_flat = sum_along_instru_dim(pr0)
+#    pr1_flat = sum_along_instru_dim(pr1)
+#
+#    def fun_thresh(y):
+#        return np.minimum(y, 1).astype(int)
+#
+#    distance, path = fastdtw(pr0_flat, pr1_flat, dist=lambda a, b: euclidean(fun_thresh(a), fun_thresh(b)))
+#    # Get paths
+#    path0 = [e[0] for e in path]
+#    path1 = [e[1] for e in path]
+#
+#    pr0_warp = warp_pr_aux(pr0, path0)
+#    pr1_warp = warp_pr_aux(pr1, path1)
+#
+#    return pr0_warp, pr1_warp
 
 
 if __name__ == '__main__':

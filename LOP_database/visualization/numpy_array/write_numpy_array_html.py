@@ -18,6 +18,8 @@ def write_numpy_array_html(filename, dataname, colour_palette='blue_gradient', m
         colour_list = "['#b3c6ff', '#000000']"
     elif colour_palette == 'rainbow':
         colour_list = "['#2c7bb6', '#00a6ca','#00ccbc','#90eb9d','#ffff8c','#f9d057','#f29e2e','#e76818','#d7191c']"
+    elif colour_palette == 'hot':   
+        colour_list = "['#0b0000', '#550000', '#9f0000', '#ea0000', '#ff3500', '#ff8000', '#ffca00', '#ffff20', '#ffff8f', '#ffffff',]"
     else:
         raise NameError('Undefined colour palette')
 

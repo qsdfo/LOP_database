@@ -21,5 +21,4 @@ def pitch_transposition(pr, pitch_shift):
         else:
             shift[:, :N+pitch_shift] = normal[:, -pitch_shift:]
         pr_shifted[k] = shift
-
     return pr_shifted
