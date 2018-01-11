@@ -26,7 +26,6 @@ class Read_midi(object):
         self.__quantization = quantization
 
         ## Pianoroll
-        self.pianoroll = None
         self.__T_pr = None
 
         ## Private misc
@@ -44,23 +43,6 @@ class Read_midi(object):
     @property
     def T_file(self):
         return self.__T_file
-
-    @property
-    def pianoroll(self):
-        return self.__pianoroll
-
-    @pianoroll.setter
-    def pianoroll(self, pr):
-        # Ensure that the dimensions are always correct
-        if pr is None:
-            self.__pianoroll = None
-            return
-        T_pr = get_pianoroll_time(pr)
-        if T_pr:
-            self.__T_pr = T_pr
-            self.__pianoroll = pr
-        else:
-            self.__pianoroll = None
 
     def get_total_num_tick(self):
         # Midi length should be written in a meta message at the beginning of the file,
@@ -146,7 +128,6 @@ class Read_midi(object):
             notes_on = []
             for message in track:
 
-
                 ##########################################
                 ##########################################
                 ##########################################
@@ -191,11 +172,10 @@ class Read_midi(object):
                     name = 'unnamed' + str(counter_unnamed_track)
                     counter_unnamed_track += 1
                 if name in pianoroll.keys():
-                    # Take max of the to self.pianorolls (lame solution;...)
+                    # Take max of the to pianorolls
                     pianoroll[name] = np.maximum(pr, pianoroll[name])
                 else:
                     pianoroll[name] = pr
-        self.pianoroll = pianoroll
         return pianoroll
 
 
