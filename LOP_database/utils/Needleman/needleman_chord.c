@@ -40,6 +40,16 @@
 #define LEN 10
 #define BUF_SIZE 32  // Long size
 
+struct needle_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct needle_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct needle_state _state;
+#endif
 
 char *int2bin(long a, char *buffer, int buf_size) {
     int i;
@@ -55,8 +65,8 @@ int score_chord(long ax, long bx){
     int a = (int) ax;
     int b = (int) bx;
     float score = 0;
-    char buffer[BUF_SIZE];
-    buffer[BUF_SIZE - 1] = '\0';
+    // char buffer[BUF_SIZE];
+    // buffer[BUF_SIZE - 1] = '\0';
     int nb_elt_a = 0;
     int nb_elt_b = 0;
     int i;
@@ -78,7 +88,7 @@ int score_chord(long ax, long bx){
             {
                 score += 1;
             }
-            else if( ((a & 0x1) & !(b & 0x1) ) | (!(a & 0x1) & (b & 0x1))){
+            else if( ((a & 0x1) & !(b & 0x1) ) | ( (!(a & 0x1)) & (b & 0x1) ) ){
                 // Mismatch
                 score -= 1;
             }
@@ -103,8 +113,7 @@ int score_chord(long ax, long bx){
     return (int)score;
 }
 
-static float getScore(const int *horizGap_m, const int *vertGap_m, const int *m, int lena, int lenb, int *start1, int *start2, int noEndGap_n)
-{
+static float getScore(const int *horizGap_m, const int *vertGap_m, const int *m, int lena, int lenb, int *start1, int *start2, int noEndGap_n){
     int i,j, cursor;
     float score = INT_MIN;
     *start1 = lena-1;
@@ -349,7 +358,7 @@ float *needlemanWunsch(const long  *a, const long  *b,
         int		testeg;
         int		lastGap = 0;
         int		nbEndGap = 0;
-        int     bestSoFar;
+        // int     bestSoFar;
         /* Align stats : nbId, F, nbGaps, F, nbDiffs, F */
         int		stats[6] = {0, 0, 0, 0, 0, 0};
         int 	homopolState[6] = {'?', 0, 0, '?', 0, 0};
@@ -412,7 +421,7 @@ float *needlemanWunsch(const long  *a, const long  *b,
             bconvcode = b[xpos];
             cursorp = xpos-1;
             cursor = xpos++;
-            bestSoFar = INT_MAX;
+            // bestSoFar = INT_MAX;
             while (ypos < lena)
             {
                 // printf("posa : %d - posb : %d\n", ypos, bconvcode);
@@ -731,188 +740,236 @@ float *needlemanWunsch(const long  *a, const long  *b,
         output[3] = stats[2];
 
         return output;
-    }
+}
 
-    /* ################################################ */
-    /* Python interface */
-    static PyObject	*needleman_chord(PyObject* self, PyObject* args)
+/* ################################################ */
+/* Python interface */
+static PyObject	*needleman_chord(PyObject* self, PyObject* args)
     {
-        int i;
-        // Input
-        PyObject    *alist_PY; /* the list of int */
-        PyObject    *blist_PY;
-        int         gapopen;
-        int         gapextend;
-        // One element in a or b (needed for parsing a and b)
-        PyObject    *intObj;
-        // Python list converted to long list
-        long        *alist;
-        long        *blist;
-        // Lists lenght
-        int         lena;
-        int         lenb;
+    int i;
+    // Input
+    PyObject    *alist_PY; /* the list of int */
+    PyObject    *blist_PY;
+    int         gapopen;
+    int         gapextend;
+    // One element in a or b (needed for parsing a and b)
+    PyObject    *intObj;
+    // Python list converted to long list
+    long        *alist;
+    long        *blist;
+    // Lists lenght
+    int         lena;
+    int         lenb;
 
-        // Output C function
-        float       *output;
-        int         trace_length;
-        int         sum_score;
-        int         nbId;
-        int         nbGaps;
-        // Trace indexes for warping the tracks
-        long        *trace_a;
-        long        *trace_b;
-        // Converted in Python object
-        PyObject    *trace_a_PY; /* the list of int */
-        PyObject    *trace_b_PY;
+    // Output C function
+    float       *output;
+    int         trace_length;
+    int         sum_score;
+    int         nbId;
+    int         nbGaps;
+    // Trace indexes for warping the tracks
+    long        *trace_a;
+    long        *trace_b;
+    // Converted in Python object
+    PyObject    *trace_a_PY; /* the list of int */
+    PyObject    *trace_b_PY;
 
-        // Get input value from python script
-        if (!PyArg_ParseTuple(args, "OOii", &alist_PY, &blist_PY, &gapopen, &gapextend))
-        {
-            printf("Bad format for argument\n");
-            return NULL;
-        }
-
-        /* get the number of lines passed to us */
-        lena = (int) PyList_Size(alist_PY);
-        if (lena < 0)   return NULL; /* Not a list */
-        lenb = (int) PyList_Size(blist_PY);
-        if (lenb < 0)   return NULL; /* Not a list */
-
-        // Initialize alist and blist
-        alist = calloc(lena, sizeof(long));
-        blist = calloc(lenb, sizeof(long));
-        // Trace_a and trace_b
-        trace_a = calloc((lena+lenb), sizeof(long));
-        trace_b = calloc((lena+lenb), sizeof(long));
-
-        // Build int lists
-        /* iterate over items of the list, grabbing strings, and parsing
-        for numbers */
-        for (i=0; i<lena; i++){
-            /* grab the string object from the next element of the list */
-            intObj = PyList_GetItem(alist_PY, i); /* Can't fail */
-            Py_INCREF(intObj);
-            /* make it a string */
-            alist[i] = PyInt_AsLong(intObj);
-            /* now do the parsing */
-            Py_DECREF(intObj);
-        }
-
-        for (i=0; i<lenb; i++){
-            /* grab the string object from the next element of the list */
-            intObj = PyList_GetItem(blist_PY, i); /* Can't fail */
-            Py_INCREF(intObj);
-            /* make it a string */
-            blist[i] = PyInt_AsLong(intObj);
-            /* now do the parsing */
-            Py_DECREF(intObj);
-        }
-
-        // Call function
-        output = needlemanWunsch(alist, blist, lena, lenb, trace_a, trace_b, gapopen, gapextend);
-
-        trace_length = (int)output[0];
-        sum_score = (int)output[1];
-        nbId = (int)output[2];
-        nbGaps = (int)output[3];
-
-        trace_a_PY = PyList_New(trace_length);
-        if (!trace_a_PY){
-            return NULL;
-        }
-        for (i = 0; i < trace_length; i++) {
-            // Index are lenb+lena-i to flip lr the list and return only useful part
-            intObj = PyInt_FromLong(trace_a[i]);
-            if (!intObj) {
-                Py_DECREF(trace_a_PY);
-                return NULL;
-            }
-            // Be carreful with order : new element is added at (trace_length-i)
-            PyList_SET_ITEM(trace_a_PY, i, intObj);
-            Py_DECREF(intObj);
-        }
-
-        trace_b_PY = PyList_New(trace_length);
-        if (!trace_b_PY){
-            return NULL;
-        }
-        for (i = 0; i < trace_length; i++) {
-            intObj = PyInt_FromLong(trace_b[i]);
-            if (!intObj) {
-                Py_DECREF(trace_b_PY);
-                return NULL;
-            }
-            PyList_SET_ITEM(trace_b_PY, i, intObj);
-            Py_DECREF(intObj);
-        }
-
-        // Free static output
-        // free(output);
-        free(alist);
-        free(blist);
-        free(trace_a);
-        free(trace_b);
-
-        // Convert to python value output
-        return Py_BuildValue("OOiii", trace_a_PY, trace_b_PY, sum_score, nbId, nbGaps);
-    }
-
-    static PyMethodDef NeedleMethods[] = {
-        {"needleman_chord", (PyCFunction)needleman_chord, METH_VARARGS, "Calculate Needleman-Wunsch for a whole set"},
-        {NULL, NULL, 0, NULL}
-    };
-
-    PyMODINIT_FUNC  // Precise return type = void + declares any special linkage declarations required by the platform
-    initneedleman_chord(void)
+    // Get input value from python script
+    if (!PyArg_ParseTuple(args, "OOii", &alist_PY, &blist_PY, &gapopen, &gapextend))
     {
-        PyObject *module;
-        module = Py_InitModule("needleman_chord", NeedleMethods);
-
-        if (module == NULL)
-        return;
+        printf("Bad format for argument\n");
+        return NULL;
     }
 
-    /* ################################################ */
-    /* DEBUG */
-    // int main(){
-    //
-    //     int res;
-    //
-    //     long a[12] = {1,1,1,2,2,2,4,4,4,8,8,8};
-    //     long b[9] = {1,1,1,2,2,4,4,8,8};
-    //
-    //     int lena = 12;
-    //     int lenb = 9;
-    //
-    //     long *trace_a = calloc(lena + lenb, sizeof(long));
-    //     long *trace_b = calloc(lena + lenb, sizeof(long));
-    //
-    //     res = needlemanWunsch(a, b, lena, lenb, trace_a, trace_b,
-    //         3, 1);
-    //
-    //     int counter = 0;
-    //     for(int i=1; i<res+1; i++){
-    //         if(trace_a[res-i])
-    //         {
-    //             printf("%li; ", a[counter]);
-    //             counter++;
-    //         }
-    //         else{
-    //             printf("-; ");
-    //         }
-    //     }
-    //     printf("\n");
-    //     counter = 0;
-    //     for(int i=1; i<res+1; i++){
-    //         if(trace_b[res-i])
-    //         {
-    //             printf("%li; ", b[counter]);
-    //             counter++;
-    //         }
-    //         else{
-    //             printf("-; ");
-    //         }
-    //     }
-    //
-    //     return 0;
-    // }
+    /* get the number of lines passed to us */
+    lena = (int) PyList_Size(alist_PY);
+    if (lena < 0)   return NULL; /* Not a list */
+    lenb = (int) PyList_Size(blist_PY);
+    if (lenb < 0)   return NULL; /* Not a list */
+
+    // Initialize alist and blist
+    alist = calloc(lena, sizeof(long));
+    blist = calloc(lenb, sizeof(long));
+    // Trace_a and trace_b
+    trace_a = calloc((lena+lenb), sizeof(long));
+    trace_b = calloc((lena+lenb), sizeof(long));
+
+    // Build int lists
+    /* iterate over items of the list, grabbing strings, and parsing
+    for numbers */
+    for (i=0; i<lena; i++){
+        /* grab the string object from the next element of the list */
+        intObj = PyList_GetItem(alist_PY, i); /* Can't fail */
+        Py_INCREF(intObj);
+        /* make it a string */
+        alist[i] = PyLong_AsLong(intObj);
+        /* now do the parsing */
+        Py_DECREF(intObj);
+    }
+
+    for (i=0; i<lenb; i++){
+        /* grab the string object from the next element of the list */
+        intObj = PyList_GetItem(blist_PY, i); /* Can't fail */
+        Py_INCREF(intObj);
+        /* make it a string */
+        blist[i] = PyLong_AsLong(intObj);
+        /* now do the parsing */
+        Py_DECREF(intObj);
+    }
+
+    // Call function
+    output = needlemanWunsch(alist, blist, lena, lenb, trace_a, trace_b, gapopen, gapextend);
+
+    trace_length = (int)output[0];
+    sum_score = (int)output[1];
+    nbId = (int)output[2];
+    nbGaps = (int)output[3];
+
+    trace_a_PY = PyList_New(trace_length);
+    if (!trace_a_PY){
+        return NULL;
+    }
+    for (i = 0; i < trace_length; i++) {
+        // Index are lenb+lena-i to flip lr the list and return only useful part
+        intObj = PyLong_FromLong(trace_a[i]);
+        if (!intObj) {
+            Py_DECREF(trace_a_PY);
+            return NULL;
+        }
+        // Be carreful with order : new element is added at (trace_length-i)
+        PyList_SET_ITEM(trace_a_PY, i, intObj);
+        Py_DECREF(intObj);
+    }
+
+    trace_b_PY = PyList_New(trace_length);
+    if (!trace_b_PY){
+        return NULL;
+    }
+    for (i = 0; i < trace_length; i++) {
+        intObj = PyLong_FromLong(trace_b[i]);
+        if (!intObj) {
+            Py_DECREF(trace_b_PY);
+            return NULL;
+        }
+        PyList_SET_ITEM(trace_b_PY, i, intObj);
+        Py_DECREF(intObj);
+    }
+
+    // Free static output
+    // free(output);
+    free(alist);
+    free(blist);
+    free(trace_a);
+    free(trace_b);
+
+    // Convert to python value output
+    return Py_BuildValue("OOiii", trace_a_PY, trace_b_PY, sum_score, nbId, nbGaps);
+}
+
+static PyMethodDef needle_methods[] = {
+    {"needleman_chord", (PyCFunction)needleman_chord, METH_NOARGS, NULL},
+    {NULL, NULL}
+};
+
+#if PY_MAJOR_VERSION >= 3
+
+static int needle_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int needle_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "needleman_chord",
+        NULL,
+        sizeof(struct needle_state),
+        needle_methods,
+        NULL,
+        needle_traverse,
+        needle_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyMODINIT_FUNC
+PyInit_needleman_chord(void)
+
+#else
+#define INITERROR return
+
+void
+initneedleman_chord(void)
+#endif
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *module = PyModule_Create(&moduledef);
+#else
+    PyObject *module = Py_InitModule("needleman_chord", needle_methods);
+#endif
+
+    if (module == NULL)
+        INITERROR;
+    struct needle_state *st = GETSTATE(module);
+
+    st->error = PyErr_NewException("needleman_chord.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    return module;
+#endif
+}
+
+/* ################################################ */
+/* DEBUG */
+// int main(){
+//
+//     int res;
+//
+//     long a[12] = {1,1,1,2,2,2,4,4,4,8,8,8};
+//     long b[9] = {1,1,1,2,2,4,4,8,8};
+//
+//     int lena = 12;
+//     int lenb = 9;
+//
+//     long *trace_a = calloc(lena + lenb, sizeof(long));
+//     long *trace_b = calloc(lena + lenb, sizeof(long));
+//
+//     res = needlemanWunsch(a, b, lena, lenb, trace_a, trace_b,
+//         3, 1);
+//
+//     int counter = 0;
+//     for(int i=1; i<res+1; i++){
+//         if(trace_a[res-i])
+//         {
+//             printf("%li; ", a[counter]);
+//             counter++;
+//         }
+//         else{
+//             printf("-; ");
+//         }
+//     }
+//     printf("\n");
+//     counter = 0;
+//     for(int i=1; i<res+1; i++){
+//         if(trace_b[res-i])
+//         {
+//             printf("%li; ", b[counter]);
+//             counter++;
+//         }
+//         else{
+//             printf("-; ");
+//         }
+//     }
+//
+//     return 0;
+// }

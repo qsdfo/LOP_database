@@ -13,20 +13,20 @@ import numpy as np
 
 def get_pianoroll_time(pianoroll):
     T_pr_list = []
-    for k, v in pianoroll.iteritems():
+    for k, v in pianoroll.items():
         T_pr_list.append(v.shape[0])
     if not len(set(T_pr_list)) == 1:
-        print "Inconsistent dimensions in the new PR"
+        print("Inconsistent dimensions in the new PR")
         return None
     return T_pr_list[0]
 
 
 def get_pitch_dim(pianoroll):
     N_pr_list = []
-    for k, v in pianoroll.iteritems():
+    for k, v in pianoroll.items():
         N_pr_list.append(v.shape[1])
     if not len(set(N_pr_list)) == 1:
-        print "Inconsistent dimensions in the new PR"
+        print("Inconsistent dimensions in the new PR")
         raise NameError("Pr dimension")
     return N_pr_list[0]
 
@@ -35,7 +35,7 @@ def sum_along_instru_dim(pianoroll):
     T_pr = get_pianoroll_time(pianoroll)
     N_pr = get_pitch_dim(pianoroll)
     rp = np.zeros((T_pr, N_pr), dtype=np.int16)
-    for k, v in pianoroll.iteritems():
+    for k, v in pianoroll.items():
         rp = np.maximum(rp, v)
     return rp
 
@@ -51,7 +51,7 @@ def clip_pr(pianoroll):
     # Remove zero at the beginning and end of prs
     out = {}
     start_time, end_time = get_first_last_non_zero(pianoroll)
-    for k, v in pianoroll.iteritems():
+    for k, v in pianoroll.items():
         out[k] = v[start_time:end_time, :]
     return out
 
@@ -72,7 +72,7 @@ def pitch_class(pr):
 def extract_pianoroll_part(pianoroll, start_time, end_time):
     new_pr = {}
     # Start and end time are given in discrete frames
-    for k,v in pianoroll.iteritems():
+    for k,v in pianoroll.items():
         new_pr[k] = v[start_time:end_time]
     return new_pr
 

@@ -3,11 +3,11 @@
 
 import math
 import numpy as np
-from pianoroll_processing import pitch_class, get_pianoroll_time #, sum_along_instru_dim
+from LOP_database.utils.pianoroll_processing import pitch_class, get_pianoroll_time #, sum_along_instru_dim
 #from fastdtw import fastdtw
 #from scipy.spatial.distance import euclidean
 
-import needleman_chord
+import LOP_database.utils.needleman_chord
 
 
 def linear_warp_pr(pianoroll, T_target):
@@ -17,7 +17,7 @@ def linear_warp_pr(pianoroll, T_target):
     T_source = get_pianoroll_time(pianoroll)
     ratio = T_source / float(T_target)
     index_mask = [int(math.floor(x * ratio)) for x in range(0, T_target)]
-    for k, v in pianoroll.iteritems():
+    for k, v in pianoroll.items():
         out[k] = pianoroll[k][index_mask, :]
     return out
 
@@ -57,7 +57,7 @@ def warp_dictionnary_trace(dico, trace):
     # dico is a pianoroll dictionary
     time_len = len(trace)
     # Warp each numpy matrix in the dictionary
-    for key, value in dico.iteritems():
+    for key, value in dico.items():
         time_value = value.shape[0]
         pr_temp = np.zeros((time_len, value.shape[1]))
         counter = 0
@@ -77,7 +77,7 @@ def remove_zero_in_trace(dico, trace):
     # Trace is a binary list indicating if a gap is inserted or not in a matrix
     dico_out = {}
     time_len = sum(trace)
-    for k, v in dico.iteritems():
+    for k, v in dico.items():
         pr_temp = np.zeros((time_len, v.shape[1]))
         counter = 0
         for (i, bool_note) in enumerate(trace):
@@ -92,7 +92,7 @@ def remove_zero_in_trace(dico, trace):
 
 def warp_pr_aux(pr, path):
     pr_warp = {}
-    for k, v in pr.iteritems():
+    for k, v in pr.items():
         pr_warp[k] = v[path]
     return pr_warp
 
@@ -138,8 +138,8 @@ if __name__ == '__main__':
     trace_0 = list_proc_aux(trace_0)
     trace_1 = list_proc_aux(trace_1)
 
-    print l0
-    print trace_0
+    print(l0)
+    print(trace_0)
     ll0 = []
     counter = 0
     for a in trace_0:
@@ -149,8 +149,8 @@ if __name__ == '__main__':
         else:
             ll0.append("#")
 
-    print l1
-    print trace_1
+    print(l1)
+    print(trace_1)
     ll1 = []
     counter = 0
     for a in trace_1:

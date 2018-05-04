@@ -3,7 +3,6 @@
 
 from mido import MidiFile
 from unidecode import unidecode
-from write_midi import write_midi
 from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
 from LOP_database.utils.pianoroll_processing import get_pianoroll_time
 
@@ -166,7 +165,7 @@ class Read_midi(object):
             #     -> convert to int
             pr = pr.astype(np.int16)
             if np.sum(np.sum(pr)) > 0:
-                name = unidecode(track.name).decode('utf8')
+                name = unidecode(track.name)
                 name = name.rstrip('\x00')
                 if name == u'':
                     name = 'unnamed' + str(counter_unnamed_track)

@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 import numpy as np
-from pianoroll_processing import sum_along_instru_dim
+from LOP_database.utils.pianoroll_processing import sum_along_instru_dim
 
 
 def get_event_ind(pr):

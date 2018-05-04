@@ -3,7 +3,7 @@
 
 import glob
 import re
-import unicodecsv as csv
+import csv
 from unidecode import unidecode
 import numpy as np
 from LOP_database.utils.time_warping import needleman_chord_wrapper, warp_dictionnary_trace, remove_zero_in_trace 
