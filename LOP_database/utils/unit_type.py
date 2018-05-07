@@ -11,19 +11,19 @@ def from_rawpr_to_type(dico_matrix, unit_type):
     result = {}
     # Binary unit ?
     if unit_type == 'binary':
-        for k, matrix in dico_matrix.iteritems():
+        for k, matrix in dico_matrix.items():
             matrix[np.nonzero(matrix)] = 1
             result[k] = matrix
     elif unit_type == 'continuous':
         # Much easier to work with unit between 0 and 1, for several reason :
         #       - 'normalized' values
         #       - same reconstruction as for binary units when building midi files
-        for k, matrix in dico_matrix.iteritems():
+        for k, matrix in dico_matrix.items():
             res_mat = matrix / 127.0
             result[k] = res_mat
     elif re.search('categorical', unit_type):
         # Categorical
-        for k, matrix in dico_matrix.iteritems():
+        for k, matrix in dico_matrix.items():
             m = re.search(r'[0-9]+$', unit_type)
             N_category = int(m.group(0))
             matrix = matrix / 127.0
@@ -39,7 +39,7 @@ def from_type_to_binary(pr, unit_type):
     if unit_type == 'binary':
         return pr
     elif unit_type == 'continuous':
-        for k, matrix in pr.iteritems():
+        for k, matrix in pr.items():
             res_mat = np.copy(matrix)
             res_mat[np.nonzero(res_mat)] = 1
             result[k] = res_mat
@@ -47,7 +47,7 @@ def from_type_to_binary(pr, unit_type):
         m = re.search(r'[0-9]+$', unit_type)
         N_category = int(m.group(0))
         # Group by N_category
-        for k, m in pr.iteritems():
+        for k, m in pr.items():
             T = m.shape[0]
             N_in = m.shape[1]
             N_out = N_in / N_category

@@ -7,7 +7,7 @@ from LOP_database.utils.pianoroll_processing import pitch_class, get_pianoroll_t
 #from fastdtw import fastdtw
 #from scipy.spatial.distance import euclidean
 
-import LOP_database.utils.needleman_chord
+import LOP_database.utils.needleman_chord_module as needleman_chord_module
 
 
 def linear_warp_pr(pianoroll, T_target):
@@ -47,7 +47,7 @@ def needleman_chord_wrapper(pr1, pr2, gapopen, gapextend):
     pr1_list = conversion_to_integer_list(pr1_pitch_class, len1)
     pr2_list = conversion_to_integer_list(pr2_pitch_class, len2)
     # Traces are backward
-    trace_0, trace_1, sum_score, nbId, nbGaps = needleman_chord.needleman_chord(pr1_list, pr2_list, gapopen, gapextend)
+    trace_0, trace_1, sum_score, nbId, nbGaps = needleman_chord_module.needleman_chord(pr1_list, pr2_list, gapopen, gapextend)
 
     return trace_0[::-1], trace_1[::-1], sum_score, nbId, nbGaps
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     gapopen = 3
     gapextend = 1
-    trace_0, trace_1, sum_score, nbId, nbGaps = needleman_chord.needleman_chord(l0, l1, gapopen, gapextend)
+    trace_0, trace_1, sum_score, nbId, nbGaps = needleman_chord_module.needleman_chord(l0, l1, gapopen, gapextend)
 
     print("Sum score : %d\n" % sum_score)
 

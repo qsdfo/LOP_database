@@ -40,17 +40,6 @@
 #define LEN 10
 #define BUF_SIZE 32  // Long size
 
-struct needle_state {
-    PyObject *error;
-};
-
-#if PY_MAJOR_VERSION >= 3
-#define GETSTATE(m) ((struct needle_state*)PyModule_GetState(m))
-#else
-#define GETSTATE(m) (&_state)
-static struct needle_state _state;
-#endif
-
 char *int2bin(long a, char *buffer, int buf_size) {
     int i;
     for (i = buf_size-1; i >= 0; i--) {
@@ -744,7 +733,7 @@ float *needlemanWunsch(const long  *a, const long  *b,
 
 /* ################################################ */
 /* Python interface */
-static PyObject	*needleman_chord(PyObject* self, PyObject* args)
+static PyObject	*needleman_chord_C(PyObject* self, PyObject* args)
     {
     int i;
     // Input
@@ -867,109 +856,21 @@ static PyObject	*needleman_chord(PyObject* self, PyObject* args)
 }
 
 static PyMethodDef needle_methods[] = {
-    {"needleman_chord", (PyCFunction)needleman_chord, METH_NOARGS, NULL},
-    {NULL, NULL}
+    // {"needleman_chord", (PyCFunction)needleman_chord_C, METH_NOARGS, NULL},
+    {"needleman_chord", needleman_chord_C, METH_VARARGS, "Compute best alignement path using the Needleman_Wunsch algorithm"},
+    {NULL, NULL, 0, NULL}
 };
 
-#if PY_MAJOR_VERSION >= 3
-
-static int needle_traverse(PyObject *m, visitproc visit, void *arg) {
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
-}
-
-static int needle_clear(PyObject *m) {
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
-
-
-static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "needleman_chord",
-        NULL,
-        sizeof(struct needle_state),
-        needle_methods,
-        NULL,
-        needle_traverse,
-        needle_clear,
-        NULL
+static struct PyModuleDef module_definition = { 
+    PyModuleDef_HEAD_INIT,
+    "needleman_chord_module",
+    "Python module for C implementation of Needleman-Wunsch algorithm",
+    -1, 
+    needle_methods
 };
 
-#define INITERROR return NULL
-
-PyMODINIT_FUNC
-PyInit_needleman_chord(void)
-
-#else
-#define INITERROR return
-
-void
-initneedleman_chord(void)
-#endif
+PyMODINIT_FUNC PyInit_needleman_chord_module(void)
 {
-#if PY_MAJOR_VERSION >= 3
-    PyObject *module = PyModule_Create(&moduledef);
-#else
-    PyObject *module = Py_InitModule("needleman_chord", needle_methods);
-#endif
-
-    if (module == NULL)
-        INITERROR;
-    struct needle_state *st = GETSTATE(module);
-
-    st->error = PyErr_NewException("needleman_chord.Error", NULL, NULL);
-    if (st->error == NULL) {
-        Py_DECREF(module);
-        INITERROR;
-    }
-
-#if PY_MAJOR_VERSION >= 3
-    return module;
-#endif
+    Py_Initialize();
+    return PyModule_Create(&module_definition);
 }
-
-/* ################################################ */
-/* DEBUG */
-// int main(){
-//
-//     int res;
-//
-//     long a[12] = {1,1,1,2,2,2,4,4,4,8,8,8};
-//     long b[9] = {1,1,1,2,2,4,4,8,8};
-//
-//     int lena = 12;
-//     int lenb = 9;
-//
-//     long *trace_a = calloc(lena + lenb, sizeof(long));
-//     long *trace_b = calloc(lena + lenb, sizeof(long));
-//
-//     res = needlemanWunsch(a, b, lena, lenb, trace_a, trace_b,
-//         3, 1);
-//
-//     int counter = 0;
-//     for(int i=1; i<res+1; i++){
-//         if(trace_a[res-i])
-//         {
-//             printf("%li; ", a[counter]);
-//             counter++;
-//         }
-//         else{
-//             printf("-; ");
-//         }
-//     }
-//     printf("\n");
-//     counter = 0;
-//     for(int i=1; i<res+1; i++){
-//         if(trace_b[res-i])
-//         {
-//             printf("%li; ", b[counter]);
-//             counter++;
-//         }
-//         else{
-//             printf("-; ");
-//         }
-//     }
-//
-//     return 0;
-// }
