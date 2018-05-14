@@ -14,7 +14,7 @@ def pitch_transposition(pr, pitch_shift):
     T = pianoroll_processing.get_pianoroll_time(pr)
     N = pianoroll_processing.get_pitch_dim(pr)
     pr_shifted = {}
-    for k, normal in pr.iteritems():
+    for k, normal in pr.items():
         shift = np.zeros((T, N))
         if pitch_shift > 0:
             shift[:, pitch_shift:] = normal[:, 0:N-pitch_shift]

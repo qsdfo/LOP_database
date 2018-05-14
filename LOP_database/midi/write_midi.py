@@ -35,7 +35,7 @@ def write_midi(pr, ticks_per_beat, write_path, tempo=80):
     mid.ticks_per_beat = ticks_per_beat
 
     # Each instrument is a track
-    for instrument_name, matrix in pr.iteritems():
+    for instrument_name, matrix in pr.items():
         # Add a new track with the instrument name to the midi file
         track = mid.add_track(instrument_name)
         # transform the matrix in a list of (pitch, velocity, time)

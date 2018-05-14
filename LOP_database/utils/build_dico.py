@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 from collections import OrderedDict
-import cPickle as pickle
+import pickle as pickle
 
 
 # Dico with the regexp for intru_mapping

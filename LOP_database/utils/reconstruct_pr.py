@@ -17,7 +17,7 @@ def instrument_reconstruction(matrix, mapping):
     T = matrix.shape[0]
     N = 128
 
-    for instrument_name, ranges in mapping.iteritems():
+    for instrument_name, ranges in mapping.items():
         if instrument_name == 'Piano':
             continue
         index_min = ranges['index_min']
