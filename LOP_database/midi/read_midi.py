@@ -106,7 +106,6 @@ class Read_midi(object):
             # write it in th pr
             match_list = [(ind, item) for (ind, item) in enumerate(notes_on) if item[0] == pitch_off]
             if len(match_list) == 0:
-                print("Try to note off a note that has never been turned on")
                 # Do nothing
                 return
 
